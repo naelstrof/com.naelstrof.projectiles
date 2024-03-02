@@ -8,25 +8,27 @@ namespace Polynomials {
 public static class RootSolver {
     private static PolynomialCubic cubic = new PolynomialCubic();
     private static PolynomialQuartic quartic = new PolynomialQuartic();
+
+    private const float maxZeroDistanceFromPeakOrValley = 20f;
     // ax⁴+bx³+cx²+dx+e = 0
-    public static void GetRootsForQuartic(List<float> roots, float a, float b, float c, float d, float e) {
+    public static void GetRootsForQuartic(List<float> roots, float a, float b, float c, float d, float e, float tolerance = 0.025f, int maxIterations = 12) {
         if (a == 0f) {
-            GetRootsForCubic(roots, b, c, d, e);
+            GetRootsForCubic(roots, b, c, d, e, tolerance, maxIterations);
             return;
         }
 
         roots.Clear();
-        GetRootsForCubic(roots, a * 4f, b * 3f, c*2f, d);
+        GetRootsForCubic(roots, a * 4f, b * 3f, c*2f, d, tolerance, maxIterations);
         if (roots.Count == 0) {
             return;
         }
         roots.Sort();
-        roots.Insert(0, roots[0] - 100f);
-        roots.Add(roots[^1] + 100f);
+        roots.Insert(0, roots[0] - maxZeroDistanceFromPeakOrValley);
+        roots.Add(roots[^1] + maxZeroDistanceFromPeakOrValley);
         int count = roots.Count;
         quartic.SetConstants(a, b, c, d, e);
         for (int i = 0; i < count-1; i++) {
-            GetRootBinarySearch(roots, quartic.Evaluate, roots[i], roots[i + 1]);
+            GetRootBinarySearch(roots, quartic.Evaluate, roots[i], roots[i + 1], tolerance, maxIterations);
         }
         for (int i = 0; i < count; i++) {
             roots.RemoveAt(0);
@@ -34,7 +36,7 @@ public static class RootSolver {
     }
 
     // ax³+bx²+cx+d = 0
-    public static void GetRootsForCubic(List<float> roots, float a, float b, float c, float d) {
+    public static void GetRootsForCubic(List<float> roots, float a, float b, float c, float d, float tolerance = 0.025f, int maxIterations = 12) {
         if (a == 0f) {
             GetRootsForQuadratic(roots, b, c, d);
             return;
@@ -46,8 +48,8 @@ public static class RootSolver {
             return;
         }
         roots.Sort();
-        roots.Insert(0, roots[0] - 100f);
-        roots.Add(roots[^1] + 100f);
+        roots.Insert(0, roots[0] - maxZeroDistanceFromPeakOrValley);
+        roots.Add(roots[^1] + maxZeroDistanceFromPeakOrValley);
         int count = roots.Count;
         cubic.SetConstants(a, b, c, d);
         for (int i = 0; i < count-1; i++) {
@@ -90,7 +92,7 @@ public static class RootSolver {
     }
 
     private delegate float PolynomialFunction(float t);
-    private static void GetRootBinarySearch(IList<float> roots, PolynomialFunction function, float ta, float tb, float tolerance = 0.05f, int maxIterations = 7) {
+    private static void GetRootBinarySearch(IList<float> roots, PolynomialFunction function, float ta, float tb, float tolerance = 0.025f, int maxIterations = 12) {
         float fa = function.Invoke(ta);
         float fb = function.Invoke(tb);
         // No solutions (must be a local peak/valley), or just isn't valid
